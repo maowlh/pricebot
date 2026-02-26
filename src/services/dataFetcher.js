@@ -1,8 +1,8 @@
 const axios = require('axios');
 const NodeCache = require('node-cache');
 
-const API_BASE_URL = process.env.API_BASE_URL || 'https://price-gateway.liara.run/api/v1';
-const API_KEY = process.env.API_KEY || 'Ma9073Ma3237100';
+const API_BASE_URL = process.env.API_BASE_URL || 'https://api.alanchand.com';
+const API_TOKEN = process.env.API_TOKEN || 'zYAMhyxJUJyB0w3qn24R';
 
 // --- Configuration ---
 const RETRY_COUNT = 3;
@@ -15,10 +15,7 @@ let isFetching = false;
 
 const http = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 20000,
-  headers: {
-    'x-api-key': API_KEY
-  }
+  timeout: 20000
 });
 
 // --- Utility: delay helper ---
@@ -53,11 +50,11 @@ async function fetchLiveData() {
   isFetching = true;
 
   try {
-    const gold = await fetchWithRetry(() => http.get('/market/acgold'), 'acgold');
+    const gold = await fetchWithRetry(() => http.get('/', { params: { type: 'golds', token: API_TOKEN } }), 'golds');
     await delay(500);
-    const crypto = await fetchWithRetry(() => http.get('/market/accrypto'), 'accrypto');
+    const crypto = await fetchWithRetry(() => http.get('/', { params: { type: 'crypto', token: API_TOKEN } }), 'crypto');
     await delay(500);
-    const currencies = await fetchWithRetry(() => http.get('/market/accurrencies'), 'accurrencies');
+    const currencies = await fetchWithRetry(() => http.get('/', { params: { type: 'currencies', token: API_TOKEN } }), 'currencies');
 
     if (gold.data && Object.keys(gold.data).length) {
       cache.set('live:gold', gold.data);

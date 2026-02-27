@@ -1,5 +1,6 @@
 const axios = require('axios');
 const NodeCache = require('node-cache');
+const { savePriceSnapshot, cleanupOldData } = require('./database');
 
 const API_BASE_URL = process.env.API_BASE_URL || 'https://api.alanchand.com';
 const API_TOKEN = process.env.API_TOKEN || 'zYAMhyxJUJyB0w3qn24R';
@@ -68,6 +69,13 @@ async function fetchLiveData() {
 
     cache.set('live:lastUpdatedAt', new Date().toISOString());
     console.log('[live] data refreshed successfully');
+
+    // Save to database
+    try {
+      savePriceSnapshot(getSnapshot());
+    } catch (dbErr) {
+      console.error('[db] save failed:', dbErr.message);
+    }
   } catch (error) {
     console.error('[live] refresh failed (keeping stale cache):', error.message);
   } finally {
@@ -100,6 +108,11 @@ function startBackgroundJobs() {
       console.error('[live] interval error:', error.message);
     });
   }, REFRESH_INTERVAL_MS);
+
+  // Cleanup old DB records daily
+  setInterval(() => {
+    try { cleanupOldData(); } catch (e) { console.error('[db] cleanup error:', e.message); }
+  }, 24 * 60 * 60 * 1000);
 }
 
 module.exports = {

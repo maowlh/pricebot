@@ -380,6 +380,35 @@ bot.command('price', (ctx) => {
   ctx.reply(text + lastUpdatedText(snapshot));
 });
 
+// --- /symbols ---
+bot.command('symbols', (ctx) => {
+  const snapshot = getSnapshot();
+  const lines = [];
+
+  const goldItems = Object.values(snapshot.gold || {});
+  if (goldItems.length) {
+    lines.push('🥇 طلا و سکه:');
+    lines.push(goldItems.map((i) => `  ${i.slug} — ${i.name}`).join('\n'));
+    lines.push('');
+  }
+
+  const curItems = Object.values(snapshot.currencies || {});
+  if (curItems.length) {
+    lines.push('💱 ارزها:');
+    lines.push(curItems.map((i) => `  ${i.slug} — ${i.name}`).join('\n'));
+    lines.push('');
+  }
+
+  const cryptoItems = Object.values(snapshot.crypto || {});
+  if (cryptoItems.length) {
+    lines.push('🪙 رمزارزها:');
+    lines.push(cryptoItems.map((i) => `  ${i.slug} — ${i.name}`).join('\n'));
+  }
+
+  if (!lines.length) return ctx.reply('⏳ دیتا هنوز لود نشده...');
+  ctx.reply('📋 لیست سمبل‌ها\n\n' + lines.join('\n') + '\n\nاستفاده: /price [slug] یا /addportfolio [slug] [amount]\n\nDev | maowlh');
+});
+
 // --- /gold ---
 bot.command('gold', (ctx) => {
   const snapshot = getSnapshot();
@@ -388,7 +417,7 @@ bot.command('gold', (ctx) => {
 
   const lines = items.map((item) => {
     const unit = USD_GOLD_SLUGS.has(String(item.slug || '').toLowerCase()) ? '$' : 'T';
-    return `🥇 ${item.name}: ${formatNumber(item.price)} ${unit} | ${trendEmoji(item.dayChange)} ${item.dayChange}%`;
+    return `🥇 ${item.name}: ${formatNumber(item.price)} ${unit}`;
   });
   ctx.reply('🥇 قیمت طلا و سکه\n\n' + lines.join('\n') + lastUpdatedText(snapshot) + '\n\nDev | maowlh');
 });
@@ -400,7 +429,7 @@ bot.command('crypto', (ctx) => {
   if (!items.length) return ctx.reply('⏳ دیتا هنوز لود نشده...');
 
   const lines = items.slice(0, 40).map((item) =>
-    `${emojiForCrypto(item.slug)} ${item.slug}: ${formatNumber(item.toman)} T | ${trendEmoji(item.change_24h)} ${item.change_24h}%`
+    `${emojiForCrypto(item.slug)} ${item.slug}: ${formatNumber(item.toman)} T`
   );
   ctx.reply('🪙 قیمت رمزارزها\n\n' + lines.join('\n') + lastUpdatedText(snapshot) + '\n\nDev | maowlh');
 });
@@ -412,7 +441,7 @@ bot.command('currency', (ctx) => {
   if (!items.length) return ctx.reply('⏳ دیتا هنوز لود نشده...');
 
   const lines = items.map((item) =>
-    `${flagForCurrency(item.slug)} ${item.name}: ${formatNumber(item.sell)} T | ${trendEmoji(item.dayChange)} ${item.dayChange}%`
+    `${flagForCurrency(item.slug)} ${item.name}: ${formatNumber(item.sell)} T`
   );
   ctx.reply('💱 قیمت ارزها\n\n' + lines.join('\n') + lastUpdatedText(snapshot) + '\n\nDev | maowlh');
 });
@@ -434,11 +463,11 @@ bot.command('compare', (ctx) => {
     const { item, category } = found;
     if (category === 'gold') {
       const unit = USD_GOLD_SLUGS.has(item.slug?.toLowerCase()) ? '$' : 'Toman';
-      lines.push(`🥇 ${item.name}: ${formatNumber(item.price)} ${unit} | ${trendEmoji(item.dayChange)} ${item.dayChange}%`);
+      lines.push(`🥇 ${item.name}: ${formatNumber(item.price)} ${unit}`);
     } else if (category === 'currency') {
-      lines.push(`${flagForCurrency(item.slug)} ${item.name}: Sell ${formatNumber(item.sell)} T | Buy ${formatNumber(item.buy)} T | ${trendEmoji(item.dayChange)} ${item.dayChange}%`);
+      lines.push(`${flagForCurrency(item.slug)} ${item.name}: Sell ${formatNumber(item.sell)} T | Buy ${formatNumber(item.buy)} T`);
     } else {
-      lines.push(`${emojiForCrypto(item.slug)} ${item.slug}: ${formatNumber(item.toman)} T | $${formatNumber(item.price)} | ${trendEmoji(item.change_24h)} ${item.change_24h}%`);
+      lines.push(`${emojiForCrypto(item.slug)} ${item.slug}: ${formatNumber(item.toman)} T | $${formatNumber(item.price)}`);
     }
   }
 
@@ -574,21 +603,21 @@ bot.command('summary', (ctx) => {
   const goldItems = Object.values(snapshot.gold || {});
   if (goldItems.length) {
     const main = goldItems.find((i) => i.slug === 'sekkeh') || goldItems[0];
-    lines.push(`🥇 سکه: ${formatNumber(main.price)} T | ${trendEmoji(main.dayChange)} ${main.dayChange}%`);
+    lines.push(`🥇 سکه: ${formatNumber(main.price)} T`);
   }
 
   // Currency highlights
   const usd = Object.values(snapshot.currencies || {}).find((i) => i.slug === 'usd');
   const eur = Object.values(snapshot.currencies || {}).find((i) => i.slug === 'eur');
-  if (usd) lines.push(`🇺🇸 دلار: ${formatNumber(usd.sell)} T | ${trendEmoji(usd.dayChange)} ${usd.dayChange}%`);
-  if (eur) lines.push(`🇪🇺 یورو: ${formatNumber(eur.sell)} T | ${trendEmoji(eur.dayChange)} ${eur.dayChange}%`);
+  if (usd) lines.push(`🇺🇸 دلار: ${formatNumber(usd.sell)} T`);
+  if (eur) lines.push(`🇪🇺 یورو: ${formatNumber(eur.sell)} T`);
 
   // Crypto highlights
   const cryptoItems = Object.values(snapshot.crypto || {});
   const btc = cryptoItems.find((i) => i.slug?.toLowerCase() === 'btc');
   const eth = cryptoItems.find((i) => i.slug?.toLowerCase() === 'eth');
-  if (btc) lines.push(`₿ بیتکوین: ${formatNumber(btc.toman)} T | ${trendEmoji(btc.change_24h)} ${btc.change_24h}%`);
-  if (eth) lines.push(`⟠ اتریوم: ${formatNumber(eth.toman)} T | ${trendEmoji(eth.change_24h)} ${eth.change_24h}%`);
+  if (btc) lines.push(`₿ بیتکوین: ${formatNumber(btc.toman)} T`);
+  if (eth) lines.push(`⟠ اتریوم: ${formatNumber(eth.toman)} T`);
 
   // Top gainer/loser
   if (cryptoItems.length) {
@@ -614,7 +643,7 @@ const buildSummaryText = (snapshot) => {
     lines.push('🥇 طلا و سکه:');
     for (const item of goldItems) {
       const unit = USD_GOLD_SLUGS.has(String(item.slug || '').toLowerCase()) ? '$' : 'T';
-      lines.push(`  ${item.name}: ${formatNumber(item.price)} ${unit} | ${trendEmoji(item.dayChange)} ${item.dayChange}%`);
+      lines.push(`  ${item.name}: ${formatNumber(item.price)} ${unit}`);
     }
     lines.push('');
   }
@@ -624,9 +653,9 @@ const buildSummaryText = (snapshot) => {
   const gbp = Object.values(snapshot.currencies || {}).find((i) => i.slug === 'gbp');
   if (usd || eur || gbp) {
     lines.push('💱 ارزهای اصلی:');
-    if (usd) lines.push(`  🇺🇸 دلار: ${formatNumber(usd.sell)} T | ${trendEmoji(usd.dayChange)} ${usd.dayChange}%`);
-    if (eur) lines.push(`  🇪🇺 یورو: ${formatNumber(eur.sell)} T | ${trendEmoji(eur.dayChange)} ${eur.dayChange}%`);
-    if (gbp) lines.push(`  🇬🇧 پوند: ${formatNumber(gbp.sell)} T | ${trendEmoji(gbp.dayChange)} ${gbp.dayChange}%`);
+    if (usd) lines.push(`  🇺🇸 دلار: ${formatNumber(usd.sell)} T`);
+    if (eur) lines.push(`  🇪🇺 یورو: ${formatNumber(eur.sell)} T`);
+    if (gbp) lines.push(`  🇬🇧 پوند: ${formatNumber(gbp.sell)} T`);
     lines.push('');
   }
 
@@ -636,9 +665,9 @@ const buildSummaryText = (snapshot) => {
   const usdt = cryptoItems.find((i) => i.slug?.toLowerCase() === 'usdt');
   if (btc || eth || usdt) {
     lines.push('🪙 رمزارزها:');
-    if (btc) lines.push(`  ₿ BTC: ${formatNumber(btc.toman)} T | ${trendEmoji(btc.change_24h)} ${btc.change_24h}%`);
-    if (eth) lines.push(`  ⟠ ETH: ${formatNumber(eth.toman)} T | ${trendEmoji(eth.change_24h)} ${eth.change_24h}%`);
-    if (usdt) lines.push(`  💲 USDT: ${formatNumber(usdt.toman)} T | ${trendEmoji(usdt.change_24h)} ${usdt.change_24h}%`);
+    if (btc) lines.push(`  ₿ BTC: ${formatNumber(btc.toman)} T`);
+    if (eth) lines.push(`  ⟠ ETH: ${formatNumber(eth.toman)} T`);
+    if (usdt) lines.push(`  💲 USDT: ${formatNumber(usdt.toman)} T`);
     lines.push('');
   }
 

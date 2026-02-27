@@ -37,6 +37,8 @@ if (!BOT_TOKEN) {
 
 const bot = new Telegraf(BOT_TOKEN);
 
+const FOOTER = '\n\nJoin our channel | t.me/PoolPricer';
+
 const calculatorRegex = /^([\d.]+)\s*([a-zA-Z0-9-]+)\s*to\s*([a-zA-Z0-9-]+)$/i;
 
 const buildRateIndex = (snapshot) => {
@@ -79,7 +81,6 @@ const formatGoldText = (item) => {
     lines.push('', `🫧| Bubble: ${formatNumber(item.bubble)} ${unit}`);
     lines.push(`📍| Bubble Per: ${formatNumber(item.bubble_per, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`);
   }
-  lines.push('', 'Dev | maowlh');
   return lines.join('\n');
 };
 
@@ -88,18 +89,16 @@ const formatCurrencyText = (item) => {
   return [
     `${flagForCurrency(item.slug)} | ${item.name} (${String(item.slug || '').toUpperCase()})`,
     '',
-    `🇮🇷🔻| Toman (SELL): ${formatNumber(item.sell)} Toman`,
-    `🇮🇷🔺| Toman (BUY): ${formatNumber(item.buy)} Toman`,
+    `🔻| Toman (SELL): ${formatNumber(item.sell)} Toman`,
+    `🔺| Toman (BUY): ${formatNumber(item.buy)} Toman`,
     '',
-    `🇺🇸| Price Usd: ${formatNumber(item.dolar_rate, { minimumFractionDigits: 0, maximumFractionDigits: 6 })} $`,
+    `🇺🇸| Price USD: ${formatNumber(item.dolar_rate, { minimumFractionDigits: 0, maximumFractionDigits: 6 })} $`,
     '',
     `➕| Open: ${formatNumber(item.open)} Toman`,
     `🔺| High: ${formatNumber(item.high)} Toman`,
     `🔻| Low: ${formatNumber(item.low)} Toman`,
     '',
     `${changeEmoji} | Day Change: ${formatNumber(item.dayChange, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`,
-    '',
-    'Dev | maowlh'
   ].join('\n');
 };
 
@@ -110,8 +109,8 @@ const formatCryptoText = (item) => {
   return [
     `${emojiForCrypto(item.slug)} | ${item.slug} (${item.name})`,
     '',
-    `🇮🇷| Price Toman: ${formatNumber(item.toman)} Toman`,
-    `🇺🇸| Price Usd: ${formatNumber(item.price, { minimumFractionDigits: 0, maximumFractionDigits: 8 })} $`,
+    `💰| Price Toman: ${formatNumber(item.toman)} Toman`,
+    `🇺🇸| Price USD: ${formatNumber(item.price, { minimumFractionDigits: 0, maximumFractionDigits: 8 })} $`,
     '',
     `${trendEmoji(item.change_24h)} | Change 24h: ${pct(item.change_24h)}`,
     `${trendEmoji(item.change_1h)} | Change 1h: ${pct(item.change_1h)}`,
@@ -121,8 +120,6 @@ const formatCryptoText = (item) => {
     `${trendEmoji(item.change_365d)} | Change 365d: ${pct(item.change_365d)}`,
     '',
     `${trendEmoji(item.toman24hchange)} | Toman 24h change: ${pct(item.toman24hchange)}`,
-    '',
-    'Dev | maowlh'
   ].join('\n');
 };
 
@@ -142,7 +139,7 @@ const buildCalculatorResult = (query, snapshot) => {
       title: 'Conversion unavailable',
       description: `Could not convert ${match[1]} ${from} to ${to}`,
       input_message_content: {
-        message_text: `❌ Conversion unavailable for ${match[1]} ${from} to ${to}.`
+        message_text: `❌ Conversion unavailable for ${match[1]} ${from} to ${to}.` + FOOTER
       }
     };
   }
@@ -155,7 +152,7 @@ const buildCalculatorResult = (query, snapshot) => {
     maximumFractionDigits: 8
   })} ${to}\n\nRate basis:\n1 ${from} = ${formatNumber(rates[from])} Toman\n1 ${to} = ${formatNumber(
     rates[to]
-  )} Toman\n\nDev | maowlh`;
+  )} Toman` + FOOTER;
 
   return {
     type: 'article',
@@ -172,9 +169,9 @@ const includesSearch = (item, q) => {
 };
 
 // --- Category keywords ---
-const GOLD_KEYWORDS = ['gold', 'طلا', 'سکه'];
-const CRYPTO_KEYWORDS = ['crypto', 'کریپتو', 'رمزارز'];
-const CURRENCY_KEYWORDS = ['currency', 'ارز', 'فیات', 'دلار'];
+const GOLD_KEYWORDS = ['gold'];
+const CRYPTO_KEYWORDS = ['crypto'];
+const CURRENCY_KEYWORDS = ['currency'];
 
 const matchesCategory = (q, keywords) => keywords.some((kw) => q === kw || q.startsWith(kw));
 
@@ -185,7 +182,7 @@ const makeGoldResult = (item) => ({
   title: `🥇 ${item.name}`,
   description: `💲 ${formatNumber(item.price)} Toman | ${trendEmoji(item.dayChange)} ${item.dayChange}%`,
   input_message_content: {
-    message_text: formatGoldText(item)
+    message_text: formatGoldText(item) + FOOTER
   }
 });
 
@@ -195,7 +192,7 @@ const makeCurrencyResult = (item) => ({
   title: `${flagForCurrency(item.slug)} ${item.name} (${String(item.slug || '').toUpperCase()})`,
   description: `🔻 Sell: ${formatNumber(item.sell)} | 🔺 Buy: ${formatNumber(item.buy)} Toman`,
   input_message_content: {
-    message_text: formatCurrencyText(item)
+    message_text: formatCurrencyText(item) + FOOTER
   }
 });
 
@@ -203,9 +200,9 @@ const makeCryptoResult = (item) => ({
   type: 'article',
   id: `crypto-${item.slug}-${Date.now()}`,
   title: `${emojiForCrypto(item.slug)} ${item.slug} (${item.name})`,
-  description: `🇮🇷 ${formatNumber(item.toman)} T | 🇺🇸 ${formatNumber(item.price)} $ | ${trendEmoji(item.change_24h)} ${item.change_24h}%`,
+  description: `💰 ${formatNumber(item.toman)} T | 🇺🇸 ${formatNumber(item.price)} $ | ${trendEmoji(item.change_24h)} ${item.change_24h}%`,
   input_message_content: {
-    message_text: formatCryptoText(item)
+    message_text: formatCryptoText(item) + FOOTER
   }
 });
 
@@ -213,28 +210,28 @@ const buildCategoryMenu = () => [
   {
     type: 'article',
     id: `cat-gold-${Date.now()}`,
-    title: '🥇 Gold & Coins (طلا و سکه)',
+    title: '🥇 Gold & Coins',
     description: 'Type "gold" to see all gold & coin prices',
     input_message_content: {
-      message_text: '🥇 To see gold prices, search: gold\n💱 To see currencies, search: currency\n🪙 To see crypto, search: crypto\n🧮 To convert, type: 25 USD to EUR\n\nDev | maowlh'
+      message_text: '🥇 Gold prices: search "gold"\n💱 Currencies: search "currency"\n🪙 Crypto: search "crypto"\n🧮 Convert: type "25 USD to EUR"' + FOOTER
     }
   },
   {
     type: 'article',
     id: `cat-currency-${Date.now()}`,
-    title: '💱 Currencies (ارز)',
+    title: '💱 Currencies',
     description: 'Type "currency" to see all fiat currency prices',
     input_message_content: {
-      message_text: '🥇 To see gold prices, search: gold\n💱 To see currencies, search: currency\n🪙 To see crypto, search: crypto\n🧮 To convert, type: 25 USD to EUR\n\nDev | maowlh'
+      message_text: '🥇 Gold prices: search "gold"\n💱 Currencies: search "currency"\n🪙 Crypto: search "crypto"\n🧮 Convert: type "25 USD to EUR"' + FOOTER
     }
   },
   {
     type: 'article',
     id: `cat-crypto-${Date.now()}`,
-    title: '🪙 Crypto (رمزارز)',
+    title: '🪙 Crypto',
     description: 'Type "crypto" to see all cryptocurrency prices',
     input_message_content: {
-      message_text: '🥇 To see gold prices, search: gold\n💱 To see currencies, search: currency\n🪙 To see crypto, search: crypto\n🧮 To convert, type: 25 USD to EUR\n\nDev | maowlh'
+      message_text: '🥇 Gold prices: search "gold"\n💱 Currencies: search "currency"\n🪙 Crypto: search "crypto"\n🧮 Convert: type "25 USD to EUR"' + FOOTER
     }
   }
 ];
@@ -244,19 +241,16 @@ const buildSearchResults = (query, snapshot, offset) => {
   const pageSize = 50;
   const startIdx = Number(offset) || 0;
 
-  // Empty query: show category menu
   if (!q.length) {
     return { results: buildCategoryMenu(), nextOffset: '' };
   }
 
-  // Category: gold
   if (matchesCategory(q, GOLD_KEYWORDS)) {
     const items = Object.values(snapshot.gold || {});
     const results = items.map((item) => makeGoldResult(item));
     return { results, nextOffset: '' };
   }
 
-  // Category: currency
   if (matchesCategory(q, CURRENCY_KEYWORDS)) {
     const items = Object.values(snapshot.currencies || {});
     const page = items.slice(startIdx, startIdx + pageSize);
@@ -265,14 +259,12 @@ const buildSearchResults = (query, snapshot, offset) => {
     return { results, nextOffset };
   }
 
-  // Category: crypto
   if (matchesCategory(q, CRYPTO_KEYWORDS)) {
     const items = Object.values(snapshot.crypto || {});
     const results = items.slice(0, pageSize).map((item) => makeCryptoResult(item));
     return { results, nextOffset: '' };
   }
 
-  // General search: search all 3 categories by slug/name
   const goldItems = Object.values(snapshot.gold || {}).filter((item) => includesSearch(item, q));
   const currencyItems = Object.values(snapshot.currencies || {}).filter((item) => includesSearch(item, q));
   const cryptoItems = Object.values(snapshot.crypto || {}).filter((item) => includesSearch(item, q));
@@ -298,14 +290,6 @@ const findItem = (slug, snapshot) => {
   return null;
 };
 
-// --- Helper: format last updated timestamp ---
-const lastUpdatedText = (snapshot) => {
-  if (!snapshot.lastUpdatedAt) return '';
-  const diff = Math.round((Date.now() - new Date(snapshot.lastUpdatedAt).getTime()) / 60000);
-  if (diff < 1) return '\n\n🕐 Updated: just now';
-  return `\n\n🕐 Updated: ${diff} min ago`;
-};
-
 // --- Helper: get item price for alerts/portfolio ---
 const getItemPrice = (item, category) => {
   if (category === 'gold') return Number(item.price) || 0;
@@ -319,65 +303,65 @@ const getItemPrice = (item, category) => {
 // --- /start ---
 bot.command('start', (ctx) => {
   ctx.reply(
-    '👋 سلام! به ربات قیمت خوش آمدید\n\n' +
-    '📌 دستورات:\n' +
-    '/price [slug] — قیمت یه ارز (مثلاً /price usd)\n' +
-    '/gold — لیست قیمت طلا و سکه\n' +
-    '/crypto — لیست قیمت رمزارزها\n' +
-    '/currency — لیست قیمت ارزها\n' +
-    '/compare [slugs] — مقایسه ارزها (مثلاً /compare usd eur gbp)\n' +
-    '/top — بیشترین رشد و ریزش کریپتو\n' +
-    '/alert [slug] [>|<] [price] — هشدار قیمت\n' +
-    '/myalerts — لیست هشدارهای فعال\n' +
-    '/delalert [id] — حذف هشدار\n' +
-    '/portfolio — نمایش سبد دارایی\n' +
-    '/addportfolio [slug] [amount] — اضافه به سبد\n' +
-    '/delportfolio [slug] — حذف از سبد\n' +
-    '/summary — خلاصه بازار\n\n' +
-    '🔎 Inline: در هر چتی @poolpricerbot بزنید\n' +
-    '🧮 تبدیل: @poolpricerbot 25 USD to EUR\n\n' +
-    'Dev | maowlh'
+    '👋 Welcome to PoolPricer Bot!\n\n' +
+    '📌 Commands:\n' +
+    '/price [slug] — Get price (e.g. /price usd)\n' +
+    '/gold — Gold & coin prices\n' +
+    '/crypto — Cryptocurrency prices\n' +
+    '/currency — Fiat currency prices\n' +
+    '/symbols — List all available symbols\n' +
+    '/compare [slugs] — Compare (e.g. /compare usd eur gbp)\n' +
+    '/top — Top gainers & losers\n' +
+    '/alert [slug] [>|<] [price] — Price alert\n' +
+    '/myalerts — Active alerts\n' +
+    '/delalert [id] — Delete alert\n' +
+    '/portfolio — View portfolio\n' +
+    '/addportfolio [slug] [amount] — Add to portfolio\n' +
+    '/delportfolio [slug] — Remove from portfolio\n' +
+    '/summary — Market summary\n\n' +
+    '🔎 Inline: Type @poolpricerbot in any chat\n' +
+    '🧮 Convert: @poolpricerbot 25 USD to EUR' + FOOTER
   );
 });
 
 // --- /help ---
 bot.command('help', (ctx) => {
   ctx.reply(
-    '📖 راهنمای ربات قیمت\n\n' +
-    '/price usd — قیمت دلار\n' +
-    '/price btc — قیمت بیتکوین\n' +
-    '/price sekkeh — قیمت سکه\n' +
-    '/gold — همه طلا و سکه‌ها\n' +
-    '/crypto — همه رمزارزها\n' +
-    '/currency — همه ارزها\n' +
-    '/compare usd eur gbp — مقایسه\n' +
-    '/top — بهترین و بدترین کریپتوها\n' +
-    '/alert usd > 170000 — هشدار وقتی دلار بالای ۱۷۰ هزار شد\n' +
-    '/alert btc < 50000000 — هشدار وقتی بیتکوین زیر ۵۰ میلیون شد\n' +
-    '/myalerts — هشدارهای من\n' +
-    '/addportfolio btc 0.5 — اضافه کردن ۰.۵ بیتکوین به سبد\n' +
-    '/addportfolio sekkeh 2 — اضافه کردن ۲ سکه به سبد\n' +
-    '/portfolio — نمایش ارزش سبد\n' +
-    '/summary — خلاصه بازار\n\n' +
-    'Dev | maowlh'
+    '📖 Bot Help\n\n' +
+    '/price usd — USD price\n' +
+    '/price btc — Bitcoin price\n' +
+    '/price sekkeh — Gold coin price\n' +
+    '/gold — All gold & coins\n' +
+    '/crypto — All cryptocurrencies\n' +
+    '/currency — All fiat currencies\n' +
+    '/symbols — List all symbols\n' +
+    '/compare usd eur gbp — Compare\n' +
+    '/top — Top gainers & losers\n' +
+    '/alert usd > 170000 — Alert when USD goes above 170,000\n' +
+    '/alert btc < 50000000 — Alert when BTC drops below 50M\n' +
+    '/myalerts — My alerts\n' +
+    '/addportfolio btc 0.5 — Add 0.5 BTC to portfolio\n' +
+    '/addportfolio sekkeh 2 — Add 2 gold coins\n' +
+    '/portfolio — Portfolio value\n' +
+    '/summary — Market summary' + FOOTER
   );
 });
 
 // --- /price [slug] ---
 bot.command('price', (ctx) => {
   const slug = (ctx.message.text.split(' ')[1] || '').trim().toLowerCase();
-  if (!slug) return ctx.reply('❌ لطفاً slug ارز رو وارد کن\nمثال: /price usd');
+  if (!slug) return ctx.reply('❌ Please enter a symbol\nExample: /price usd' + FOOTER);
 
   const snapshot = getSnapshot();
   const found = findItem(slug, snapshot);
-  if (!found) return ctx.reply(`❌ ارزی با slug "${slug}" پیدا نشد`);
+  if (!found) return ctx.reply(`❌ Symbol "${slug}" not found\n\nUse /symbols to see all available symbols` + FOOTER);
 
   let text;
   if (found.category === 'gold') text = formatGoldText(found.item);
   else if (found.category === 'currency') text = formatCurrencyText(found.item);
   else text = formatCryptoText(found.item);
 
-  ctx.reply(text + lastUpdatedText(snapshot));
+  ctx.reply(text + FOOTER);
 });
 
 // --- /symbols ---
@@ -387,69 +371,69 @@ bot.command('symbols', (ctx) => {
 
   const goldItems = Object.values(snapshot.gold || {});
   if (goldItems.length) {
-    lines.push('🥇 طلا و سکه:');
+    lines.push('🥇 Gold & Coins:');
     lines.push(goldItems.map((i) => `  ${i.slug} — ${i.name}`).join('\n'));
     lines.push('');
   }
 
   const curItems = Object.values(snapshot.currencies || {});
   if (curItems.length) {
-    lines.push('💱 ارزها:');
+    lines.push('💱 Currencies:');
     lines.push(curItems.map((i) => `  ${i.slug} — ${i.name}`).join('\n'));
     lines.push('');
   }
 
   const cryptoItems = Object.values(snapshot.crypto || {});
   if (cryptoItems.length) {
-    lines.push('🪙 رمزارزها:');
+    lines.push('🪙 Crypto:');
     lines.push(cryptoItems.map((i) => `  ${i.slug} — ${i.name}`).join('\n'));
   }
 
-  if (!lines.length) return ctx.reply('⏳ دیتا هنوز لود نشده...');
-  ctx.reply('📋 لیست سمبل‌ها\n\n' + lines.join('\n') + '\n\nاستفاده: /price [slug] یا /addportfolio [slug] [amount]\n\nDev | maowlh');
+  if (!lines.length) return ctx.reply('⏳ Data not loaded yet...' + FOOTER);
+  ctx.reply('📋 Available Symbols\n\n' + lines.join('\n') + '\n\nUsage: /price [slug] or /addportfolio [slug] [amount]' + FOOTER);
 });
 
 // --- /gold ---
 bot.command('gold', (ctx) => {
   const snapshot = getSnapshot();
   const items = Object.values(snapshot.gold || {});
-  if (!items.length) return ctx.reply('⏳ دیتا هنوز لود نشده...');
+  if (!items.length) return ctx.reply('⏳ Data not loaded yet...' + FOOTER);
 
   const lines = items.map((item) => {
     const unit = USD_GOLD_SLUGS.has(String(item.slug || '').toLowerCase()) ? '$' : 'T';
-    return `🥇 ${item.name}: ${formatNumber(item.price)} ${unit}`;
+    return `🥇 ${item.name}: \`${formatNumber(item.price)}\` ${unit}`;
   });
-  ctx.reply('🥇 قیمت طلا و سکه\n\n' + lines.join('\n') + lastUpdatedText(snapshot) + '\n\nDev | maowlh');
+  ctx.reply('🥇 Gold & Coin Prices\n\n' + lines.join('\n') + FOOTER, { parse_mode: 'Markdown' });
 });
 
 // --- /crypto ---
 bot.command('crypto', (ctx) => {
   const snapshot = getSnapshot();
   const items = Object.values(snapshot.crypto || {});
-  if (!items.length) return ctx.reply('⏳ دیتا هنوز لود نشده...');
+  if (!items.length) return ctx.reply('⏳ Data not loaded yet...' + FOOTER);
 
   const lines = items.slice(0, 40).map((item) =>
-    `${emojiForCrypto(item.slug)} ${item.slug}: ${formatNumber(item.toman)} T`
+    `${emojiForCrypto(item.slug)} ${item.slug}: \`${formatNumber(item.toman)}\` T`
   );
-  ctx.reply('🪙 قیمت رمزارزها\n\n' + lines.join('\n') + lastUpdatedText(snapshot) + '\n\nDev | maowlh');
+  ctx.reply('🪙 Cryptocurrency Prices\n\n' + lines.join('\n') + FOOTER, { parse_mode: 'Markdown' });
 });
 
 // --- /currency ---
 bot.command('currency', (ctx) => {
   const snapshot = getSnapshot();
   const items = Object.values(snapshot.currencies || {});
-  if (!items.length) return ctx.reply('⏳ دیتا هنوز لود نشده...');
+  if (!items.length) return ctx.reply('⏳ Data not loaded yet...' + FOOTER);
 
   const lines = items.map((item) =>
-    `${flagForCurrency(item.slug)} ${item.name}: ${formatNumber(item.sell)} T`
+    `${flagForCurrency(item.slug)} ${item.name}: \`${formatNumber(item.sell)}\` T`
   );
-  ctx.reply('💱 قیمت ارزها\n\n' + lines.join('\n') + lastUpdatedText(snapshot) + '\n\nDev | maowlh');
+  ctx.reply('💱 Currency Prices\n\n' + lines.join('\n') + FOOTER, { parse_mode: 'Markdown' });
 });
 
 // --- /compare [slug1] [slug2] ... ---
 bot.command('compare', (ctx) => {
   const parts = ctx.message.text.split(/\s+/).slice(1);
-  if (parts.length < 2) return ctx.reply('❌ حداقل ۲ ارز وارد کن\nمثال: /compare usd eur gbp');
+  if (parts.length < 2) return ctx.reply('❌ Enter at least 2 symbols\nExample: /compare usd eur gbp' + FOOTER);
 
   const snapshot = getSnapshot();
   const lines = [];
@@ -457,7 +441,7 @@ bot.command('compare', (ctx) => {
   for (const slug of parts) {
     const found = findItem(slug.toLowerCase(), snapshot);
     if (!found) {
-      lines.push(`❌ ${slug.toUpperCase()}: پیدا نشد`);
+      lines.push(`❌ ${slug.toUpperCase()}: Not found`);
       continue;
     }
     const { item, category } = found;
@@ -471,79 +455,77 @@ bot.command('compare', (ctx) => {
     }
   }
 
-  ctx.reply('📊 مقایسه ارزها\n\n' + lines.join('\n') + lastUpdatedText(snapshot) + '\n\nDev | maowlh');
+  ctx.reply('📊 Price Comparison\n\n' + lines.join('\n') + FOOTER);
 });
 
 // --- /top ---
 bot.command('top', (ctx) => {
   const snapshot = getSnapshot();
   const items = Object.values(snapshot.crypto || {});
-  if (!items.length) return ctx.reply('⏳ دیتا هنوز لود نشده...');
+  if (!items.length) return ctx.reply('⏳ Data not loaded yet...' + FOOTER);
 
   const sorted = [...items].sort((a, b) => Number(b.change_24h || 0) - Number(a.change_24h || 0));
-  const gainers = sorted.slice(0, 5);
-  const losers = sorted.slice(-5).reverse();
+  const gainers = sorted.slice(0, 10);
+  const losers = sorted.slice(-10).reverse();
 
   const gLines = gainers.map((i, idx) => `${idx + 1}. ${emojiForCrypto(i.slug)} ${i.slug}: ${formatNumber(i.toman)} T | 🟢 +${i.change_24h}%`);
   const lLines = losers.map((i, idx) => `${idx + 1}. ${emojiForCrypto(i.slug)} ${i.slug}: ${formatNumber(i.toman)} T | 🔴 ${i.change_24h}%`);
 
   ctx.reply(
-    '🏆 بیشترین رشد ۲۴ ساعته\n\n' + gLines.join('\n') +
-    '\n\n📉 بیشترین ریزش ۲۴ ساعته\n\n' + lLines.join('\n') +
-    lastUpdatedText(snapshot) + '\n\nDev | maowlh'
+    '🏆 Top 10 Gainers (24h)\n\n' + gLines.join('\n') +
+    '\n\n📉 Top 10 Losers (24h)\n\n' + lLines.join('\n') + FOOTER
   );
 });
 
 // --- /alert [slug] [>|<] [price] ---
 bot.command('alert', (ctx) => {
   const parts = ctx.message.text.split(/\s+/).slice(1);
-  if (parts.length < 3) return ctx.reply('❌ فرمت: /alert usd > 170000\n\n> = وقتی بالاتر رفت\n< = وقتی پایین‌تر اومد');
+  if (parts.length < 3) return ctx.reply('❌ Format: /alert usd > 170000\n\n> = when price goes above\n< = when price goes below' + FOOTER);
 
   const slug = parts[0].toLowerCase();
   const direction = parts[1];
   const targetPrice = Number(parts[2].replace(/,/g, ''));
 
-  if (direction !== '>' && direction !== '<') return ctx.reply('❌ جهت باید > یا < باشه');
-  if (!targetPrice || isNaN(targetPrice)) return ctx.reply('❌ قیمت نامعتبر');
+  if (direction !== '>' && direction !== '<') return ctx.reply('❌ Direction must be > or <' + FOOTER);
+  if (!targetPrice || isNaN(targetPrice)) return ctx.reply('❌ Invalid price' + FOOTER);
 
   const snapshot = getSnapshot();
   const found = findItem(slug, snapshot);
-  if (!found) return ctx.reply(`❌ ارزی با slug "${slug}" پیدا نشد`);
+  if (!found) return ctx.reply(`❌ Symbol "${slug}" not found` + FOOTER);
 
   addAlert(ctx.from.id, ctx.chat.id, slug, found.category, direction, targetPrice);
-  const dirText = direction === '>' ? 'بالاتر از' : 'پایین‌تر از';
-  ctx.reply(`✅ هشدار ثبت شد!\n\n🔔 ${slug.toUpperCase()} وقتی ${dirText} ${formatNumber(targetPrice)} بشه بهت خبر میدم`);
+  const dirText = direction === '>' ? 'goes above' : 'drops below';
+  ctx.reply(`✅ Alert set!\n\n🔔 ${slug.toUpperCase()} — will notify when it ${dirText} ${formatNumber(targetPrice)}` + FOOTER);
 });
 
 // --- /myalerts ---
 bot.command('myalerts', (ctx) => {
   const alerts = getUserAlerts(ctx.from.id);
-  if (!alerts.length) return ctx.reply('📭 هشدار فعالی نداری');
+  if (!alerts.length) return ctx.reply('📭 No active alerts' + FOOTER);
 
   const lines = alerts.map((a) => {
-    const dirText = a.direction === '>' ? '>' : '<';
-    return `🔔 #${a.id} | ${a.slug.toUpperCase()} ${dirText} ${formatNumber(a.target_price)}`;
+    return `🔔 #${a.id} | ${a.slug.toUpperCase()} ${a.direction} ${formatNumber(a.target_price)}`;
   });
-  ctx.reply('🔔 هشدارهای فعال:\n\n' + lines.join('\n') + '\n\nبرای حذف: /delalert [id]');
+  ctx.reply('🔔 Active Alerts:\n\n' + lines.join('\n') + '\n\nTo delete: /delalert [id]' + FOOTER);
 });
 
 // --- /delalert [id] ---
 bot.command('delalert', (ctx) => {
   const id = Number(ctx.message.text.split(' ')[1]);
-  if (!id) return ctx.reply('❌ فرمت: /delalert 5');
+  if (!id) return ctx.reply('❌ Format: /delalert 5' + FOOTER);
 
   const result = deleteAlert(id, ctx.from.id);
   if (result.changes > 0) {
-    ctx.reply(`✅ هشدار #${id} حذف شد`);
+    ctx.reply(`✅ Alert #${id} deleted` + FOOTER);
   } else {
-    ctx.reply(`❌ هشدار #${id} پیدا نشد یا مال تو نیست`);
+    ctx.reply(`❌ Alert #${id} not found or not yours` + FOOTER);
   }
 });
 
 // --- /addportfolio [slug] [amount] or [amount] [slug] ---
 bot.command('addportfolio', (ctx) => {
   const parts = ctx.message.text.split(/\s+/).slice(1);
-  if (parts.length < 2) return ctx.reply('❌ فرمت: /addportfolio btc 0.5\nیا: /addportfolio 0.5 btc');
+  if (parts.length < 2) return ctx.reply('❌ Format: /addportfolio btc 0.5\nOr: /addportfolio 0.5 btc' + FOOTER);
 
   let slug, amount;
   if (isNaN(parts[0])) {
@@ -553,29 +535,29 @@ bot.command('addportfolio', (ctx) => {
     amount = Number(parts[0]);
     slug = parts[1].toLowerCase();
   }
-  if (!amount || isNaN(amount) || amount <= 0) return ctx.reply('❌ مقدار نامعتبر');
+  if (!amount || isNaN(amount) || amount <= 0) return ctx.reply('❌ Invalid amount' + FOOTER);
 
   const snapshot = getSnapshot();
   const found = findItem(slug, snapshot);
-  if (!found) return ctx.reply(`❌ ارزی با slug "${slug}" پیدا نشد\n\nلیست سمبل‌ها: /symbols`);
+  if (!found) return ctx.reply(`❌ Symbol "${slug}" not found\n\nSee all symbols: /symbols` + FOOTER);
 
   setPortfolioItem(ctx.from.id, slug, found.category, amount);
-  ctx.reply(`✅ ${amount} ${slug.toUpperCase()} به سبد اضافه شد`);
+  ctx.reply(`✅ Added ${amount} ${slug.toUpperCase()} to portfolio` + FOOTER);
 });
 
 // --- /delportfolio [slug] ---
 bot.command('delportfolio', (ctx) => {
   const slug = (ctx.message.text.split(' ')[1] || '').toLowerCase();
-  if (!slug) return ctx.reply('❌ فرمت: /delportfolio btc');
+  if (!slug) return ctx.reply('❌ Format: /delportfolio btc' + FOOTER);
 
   setPortfolioItem(ctx.from.id, slug, '', 0);
-  ctx.reply(`✅ ${slug.toUpperCase()} از سبد حذف شد`);
+  ctx.reply(`✅ ${slug.toUpperCase()} removed from portfolio` + FOOTER);
 });
 
 // --- /portfolio ---
 bot.command('portfolio', (ctx) => {
   const items = getPortfolio(ctx.from.id);
-  if (!items.length) return ctx.reply('📭 سبد خالیه\n\nبرای اضافه کردن: /addportfolio btc 0.5');
+  if (!items.length) return ctx.reply('📭 Portfolio is empty\n\nTo add: /addportfolio btc 0.5' + FOOTER);
 
   const snapshot = getSnapshot();
   let totalToman = 0;
@@ -584,159 +566,177 @@ bot.command('portfolio', (ctx) => {
   for (const p of items) {
     const found = findItem(p.slug, snapshot);
     if (!found) {
-      lines.push(`❓ ${p.slug.toUpperCase()}: ${p.amount} (قیمت نامشخص)`);
+      lines.push(`❓ ${p.slug.toUpperCase()}: ${p.amount} (price unknown)`);
       continue;
     }
     const price = getItemPrice(found.item, found.category);
     const value = price * p.amount;
     totalToman += value;
-    lines.push(`${p.slug.toUpperCase()}: ${p.amount} × ${formatNumber(price)} = ${formatNumber(value)} T`);
+    lines.push(`${p.slug.toUpperCase()}: ${p.amount} x ${formatNumber(price)} = ${formatNumber(value)} T`);
   }
 
   ctx.reply(
-    '💼 سبد دارایی\n\n' + lines.join('\n') +
-    `\n\n💰 ارزش کل: ${formatNumber(totalToman)} Toman` +
-    lastUpdatedText(snapshot) + '\n\nDev | maowlh'
+    '💼 Portfolio\n\n' + lines.join('\n') +
+    `\n\n💰 Total Value: ${formatNumber(totalToman)} Toman` + FOOTER
   );
 });
 
 // --- /summary ---
 bot.command('summary', (ctx) => {
   const snapshot = getSnapshot();
-  ctx.reply(buildSummaryText(snapshot), { parse_mode: 'Markdown' });
+  sendFullSummary(ctx.chat.id, snapshot);
 });
 
 // ==================== CHANNEL AUTO-POST ====================
 const CHANNEL_ID = process.env.CHANNEL_ID || '@poolpricer';
-const CHANNEL_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+const CHANNEL_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
 
-const buildSummaryText = (snapshot) => {
-  const lines = [];
+// Build separate message texts
+const buildGoldText = (snapshot) => {
+  const items = Object.values(snapshot.gold || {});
+  if (!items.length) return null;
+  const lines = items.map((item) => {
+    const unit = USD_GOLD_SLUGS.has(String(item.slug || '').toLowerCase()) ? '$' : 'T';
+    return `  ${item.name}: \`${formatNumber(item.price)}\` ${unit}`;
+  });
+  return '🥇 Gold & Coin Prices\n\n' + lines.join('\n') + FOOTER;
+};
 
-  const goldItems = Object.values(snapshot.gold || {});
-  if (goldItems.length) {
-    lines.push('🥇 طلا و سکه:');
-    for (const item of goldItems) {
-      const unit = USD_GOLD_SLUGS.has(String(item.slug || '').toLowerCase()) ? '$' : 'T';
-      lines.push(`  ${item.name}: \`${formatNumber(item.price)}\` ${unit}`);
+const buildCryptoText = (snapshot) => {
+  const items = Object.values(snapshot.crypto || {});
+  if (!items.length) return null;
+  const lines = items.map((item) =>
+    `  ${emojiForCrypto(item.slug)} ${item.slug}: \`${formatNumber(item.toman)}\` T`
+  );
+  return '🪙 Cryptocurrency Prices\n\n' + lines.join('\n') + FOOTER;
+};
+
+const buildCurrencyText = (snapshot) => {
+  const items = Object.values(snapshot.currencies || {});
+  if (!items.length) return null;
+  const lines = items.map((item) =>
+    `  ${flagForCurrency(item.slug)} ${item.name}: \`${formatNumber(item.sell)}\` T`
+  );
+  return '💱 Currency Prices\n\n' + lines.join('\n') + FOOTER;
+};
+
+const buildTopText = (snapshot) => {
+  const items = Object.values(snapshot.crypto || {});
+  if (!items.length) return null;
+  const sorted = [...items].sort((a, b) => Number(b.change_24h || 0) - Number(a.change_24h || 0));
+  const gainers = sorted.slice(0, 10);
+  const losers = sorted.slice(-10).reverse();
+  const gLines = gainers.map((i, idx) => `${idx + 1}. ${emojiForCrypto(i.slug)} ${i.slug} 🟢 +${i.change_24h}%`);
+  const lLines = losers.map((i, idx) => `${idx + 1}. ${emojiForCrypto(i.slug)} ${i.slug} 🔴 ${i.change_24h}%`);
+  return '🏆 Top 10 Gainers (24h)\n\n' + gLines.join('\n') +
+    '\n\n� Top 10 Losers (24h)\n\n' + lLines.join('\n') + FOOTER;
+};
+
+// Send full summary as separate messages
+const sendFullSummary = async (chatId, snapshot) => {
+  const messages = [
+    buildGoldText(snapshot),
+    buildCurrencyText(snapshot),
+    buildCryptoText(snapshot),
+    buildTopText(snapshot)
+  ].filter(Boolean);
+
+  for (const msg of messages) {
+    try {
+      await bot.telegram.sendMessage(chatId, msg, { parse_mode: 'Markdown' });
+    } catch (e) {
+      console.error(`[summary] send failed to ${chatId}:`, e.message);
     }
-    lines.push('');
   }
-
-  const curItems = Object.values(snapshot.currencies || {});
-  if (curItems.length) {
-    lines.push('💱 ارزها:');
-    for (const item of curItems) {
-      lines.push(`  ${flagForCurrency(item.slug)} ${item.name}: \`${formatNumber(item.sell)}\` T`);
-    }
-    lines.push('');
-  }
-
-  const cryptoItems = Object.values(snapshot.crypto || {});
-  if (cryptoItems.length) {
-    lines.push('🪙 رمزارزها:');
-    for (const item of cryptoItems) {
-      lines.push(`  ${emojiForCrypto(item.slug)} ${item.slug}: \`${formatNumber(item.toman)}\` T`);
-    }
-    lines.push('');
-  }
-
-  if (cryptoItems.length) {
-    const sorted = [...cryptoItems].sort((a, b) => Number(b.change_24h || 0) - Number(a.change_24h || 0));
-    lines.push(`🏆 بهترین: ${sorted[0].slug} 🟢 +${sorted[0].change_24h}%`);
-    lines.push(`📉 بدترین: ${sorted[sorted.length - 1].slug} 🔴 ${sorted[sorted.length - 1].change_24h}%`);
-  }
-
-  return '📊 خلاصه بازار\n\n' + lines.join('\n') + lastUpdatedText(snapshot) + '\n\nDev | maowlh';
 };
 
 // ==================== GROUP COMMANDS ====================
 
 // --- /setsummary [minutes] ---
 bot.command('setsummary', async (ctx) => {
-  if (ctx.chat.type === 'private') return ctx.reply('❌ این دستور فقط توی گروه کار میکنه');
+  if (ctx.chat.type === 'private') return ctx.reply('❌ This command only works in groups' + FOOTER);
 
   const member = await ctx.getChatMember(ctx.from.id);
   if (!['creator', 'administrator'].includes(member.status)) {
-    return ctx.reply('❌ فقط ادمین‌ها میتونن این دستور رو بزنن');
+    return ctx.reply('❌ Only admins can use this command' + FOOTER);
   }
 
   const minutes = Number(ctx.message.text.split(' ')[1]);
-  if (!minutes || minutes < 1) return ctx.reply('❌ فرمت: /setsummary 60\n(عدد بر حسب دقیقه، حداقل ۱)');
+  if (!minutes || minutes < 1) return ctx.reply('❌ Format: /setsummary 60\n(minutes, minimum 1)' + FOOTER);
 
   setGroupSummaryInterval(ctx.chat.id, minutes);
-  ctx.reply(`✅ خلاصه بازار هر ${minutes} دقیقه ارسال میشه`);
+  ctx.reply(`✅ Market summary will be sent every ${minutes} minutes` + FOOTER);
 });
 
 // --- /stopsummary ---
 bot.command('stopsummary', async (ctx) => {
-  if (ctx.chat.type === 'private') return ctx.reply('❌ این دستور فقط توی گروه کار میکنه');
+  if (ctx.chat.type === 'private') return ctx.reply('❌ This command only works in groups' + FOOTER);
 
   const member = await ctx.getChatMember(ctx.from.id);
   if (!['creator', 'administrator'].includes(member.status)) {
-    return ctx.reply('❌ فقط ادمین‌ها میتونن این دستور رو بزنن');
+    return ctx.reply('❌ Only admins can use this command' + FOOTER);
   }
 
   disableGroupSummary(ctx.chat.id);
-  ctx.reply('✅ ارسال خودکار خلاصه بازار متوقف شد');
+  ctx.reply('✅ Auto summary stopped' + FOOTER);
 });
 
 // --- /groupalert [slug] [>|<] [price] ---
 bot.command('groupalert', async (ctx) => {
-  if (ctx.chat.type === 'private') return ctx.reply('❌ این دستور فقط توی گروه کار میکنه');
+  if (ctx.chat.type === 'private') return ctx.reply('❌ This command only works in groups' + FOOTER);
 
   const member = await ctx.getChatMember(ctx.from.id);
   if (!['creator', 'administrator'].includes(member.status)) {
-    return ctx.reply('❌ فقط ادمین‌ها میتونن این دستور رو بزنن');
+    return ctx.reply('❌ Only admins can use this command' + FOOTER);
   }
 
   const parts = ctx.message.text.split(/\s+/).slice(1);
-  if (parts.length < 3) return ctx.reply('❌ فرمت: /groupalert usd > 170000');
+  if (parts.length < 3) return ctx.reply('❌ Format: /groupalert usd > 170000' + FOOTER);
 
   const slug = parts[0].toLowerCase();
   const direction = parts[1];
   const targetPrice = Number(parts[2].replace(/,/g, ''));
 
-  if (direction !== '>' && direction !== '<') return ctx.reply('❌ جهت باید > یا < باشه');
-  if (!targetPrice || isNaN(targetPrice)) return ctx.reply('❌ قیمت نامعتبر');
+  if (direction !== '>' && direction !== '<') return ctx.reply('❌ Direction must be > or <' + FOOTER);
+  if (!targetPrice || isNaN(targetPrice)) return ctx.reply('❌ Invalid price' + FOOTER);
 
   const snapshot = getSnapshot();
   const found = findItem(slug, snapshot);
-  if (!found) return ctx.reply(`❌ ارزی با slug "${slug}" پیدا نشد`);
+  if (!found) return ctx.reply(`❌ Symbol "${slug}" not found` + FOOTER);
 
   addGroupAlert(ctx.chat.id, slug, found.category, direction, targetPrice);
-  const dirText = direction === '>' ? 'بالاتر از' : 'پایین‌تر از';
-  ctx.reply(`✅ هشدار گروهی ثبت شد!\n\n🔔 ${slug.toUpperCase()} وقتی ${dirText} ${formatNumber(targetPrice)} بشه خبر میدم`);
+  const dirText = direction === '>' ? 'goes above' : 'drops below';
+  ctx.reply(`✅ Group alert set!\n\n🔔 ${slug.toUpperCase()} — will notify when it ${dirText} ${formatNumber(targetPrice)}` + FOOTER);
 });
 
 // --- /groupalerts ---
 bot.command('groupalerts', (ctx) => {
-  if (ctx.chat.type === 'private') return ctx.reply('❌ این دستور فقط توی گروه کار میکنه');
+  if (ctx.chat.type === 'private') return ctx.reply('❌ This command only works in groups' + FOOTER);
 
   const alerts = getGroupAlerts(ctx.chat.id);
-  if (!alerts.length) return ctx.reply('📭 هشدار گروهی فعالی نداری');
+  if (!alerts.length) return ctx.reply('📭 No active group alerts' + FOOTER);
 
   const lines = alerts.map((a) => `🔔 #${a.id} | ${a.slug.toUpperCase()} ${a.direction} ${formatNumber(a.target_price)}`);
-  ctx.reply('🔔 هشدارهای گروه:\n\n' + lines.join('\n') + '\n\nبرای حذف: /delgroupalert [id]');
+  ctx.reply('🔔 Group Alerts:\n\n' + lines.join('\n') + '\n\nTo delete: /delgroupalert [id]' + FOOTER);
 });
 
 // --- /delgroupalert [id] ---
 bot.command('delgroupalert', async (ctx) => {
-  if (ctx.chat.type === 'private') return ctx.reply('❌ این دستور فقط توی گروه کار میکنه');
+  if (ctx.chat.type === 'private') return ctx.reply('❌ This command only works in groups' + FOOTER);
 
   const member = await ctx.getChatMember(ctx.from.id);
   if (!['creator', 'administrator'].includes(member.status)) {
-    return ctx.reply('❌ فقط ادمین‌ها میتونن این دستور رو بزنن');
+    return ctx.reply('❌ Only admins can use this command' + FOOTER);
   }
 
   const id = Number(ctx.message.text.split(' ')[1]);
-  if (!id) return ctx.reply('❌ فرمت: /delgroupalert 5');
+  if (!id) return ctx.reply('❌ Format: /delgroupalert 5' + FOOTER);
 
   const result = deleteGroupAlert(id, ctx.chat.id);
   if (result.changes > 0) {
-    ctx.reply(`✅ هشدار گروهی #${id} حذف شد`);
+    ctx.reply(`✅ Group alert #${id} deleted` + FOOTER);
   } else {
-    ctx.reply(`❌ هشدار #${id} پیدا نشد یا مال این گروه نیست`);
+    ctx.reply(`❌ Alert #${id} not found or not from this group` + FOOTER);
   }
 });
 
@@ -757,10 +757,10 @@ setInterval(() => {
         (alert.direction === '<' && currentPrice <= alert.target_price);
       if (triggered) {
         triggerAlert(alert.id);
-        const dirText = alert.direction === '>' ? 'بالاتر از' : 'پایین‌تر از';
+        const dirText = alert.direction === '>' ? 'above' : 'below';
         bot.telegram.sendMessage(
           alert.chat_id,
-          `🔔 هشدار!\n\n${alert.slug.toUpperCase()} به ${formatNumber(currentPrice)} رسید!\n(${dirText} ${formatNumber(alert.target_price)})\n\nDev | maowlh`
+          `🔔 Alert Triggered!\n\n${alert.slug.toUpperCase()} reached ${formatNumber(currentPrice)}!\n(${dirText} ${formatNumber(alert.target_price)})` + FOOTER
         ).catch((e) => console.error('[alert] send failed:', e.message));
       }
     }
@@ -777,17 +777,17 @@ setInterval(() => {
         (alert.direction === '<' && currentPrice <= alert.target_price);
       if (triggered) {
         triggerGroupAlert(alert.id);
-        const dirText = alert.direction === '>' ? 'بالاتر از' : 'پایین‌تر از';
+        const dirText = alert.direction === '>' ? 'above' : 'below';
         bot.telegram.sendMessage(
           alert.chat_id,
-          `🔔 هشدار گروهی!\n\n${alert.slug.toUpperCase()} به ${formatNumber(currentPrice)} رسید!\n(${dirText} ${formatNumber(alert.target_price)})\n\nDev | maowlh`
+          `🔔 Group Alert!\n\n${alert.slug.toUpperCase()} reached ${formatNumber(currentPrice)}!\n(${dirText} ${formatNumber(alert.target_price)})` + FOOTER
         ).catch((e) => console.error('[group-alert] send failed:', e.message));
       }
     }
   } catch (e) {
     console.error('[alert-checker] error:', e.message);
   }
-}, 60 * 1000); // Check every 1 minute
+}, 60 * 1000);
 
 // ==================== AUTO-POST: Channel + Groups ====================
 let lastChannelPostAt = 0;
@@ -797,10 +797,10 @@ setInterval(() => {
     const snapshot = getSnapshot();
     const now = Date.now();
 
-    // Channel auto-post (hourly)
+    // Channel auto-post (every 15 min — separate messages)
     if (CHANNEL_ID && now - lastChannelPostAt >= CHANNEL_INTERVAL_MS) {
       lastChannelPostAt = now;
-      bot.telegram.sendMessage(CHANNEL_ID, buildSummaryText(snapshot), { parse_mode: 'Markdown' })
+      sendFullSummary(CHANNEL_ID, snapshot)
         .then(() => console.log('[channel] summary posted'))
         .catch((e) => console.error('[channel] post failed:', e.message));
     }
@@ -812,7 +812,7 @@ setInterval(() => {
       const intervalMs = group.summary_interval_min * 60 * 1000;
       if (now - lastAt >= intervalMs) {
         updateGroupLastSummary(group.chat_id);
-        bot.telegram.sendMessage(group.chat_id, buildSummaryText(snapshot), { parse_mode: 'Markdown' })
+        sendFullSummary(group.chat_id, snapshot)
           .then(() => console.log(`[group] summary posted to ${group.chat_id}`))
           .catch((e) => console.error(`[group] post failed for ${group.chat_id}:`, e.message));
       }
@@ -820,7 +820,7 @@ setInterval(() => {
   } catch (e) {
     console.error('[auto-post] error:', e.message);
   }
-}, 60 * 1000); // Check every 1 minute
+}, 60 * 1000);
 
 // ==================== INLINE QUERY ====================
 
@@ -841,7 +841,7 @@ bot.on('inline_query', async (ctx) => {
         title: '⏳ Loading data...',
         description: 'Please wait a few seconds and try again',
         input_message_content: {
-          message_text: '⏳ Data is loading, please try again in a few seconds.\n\nDev | maowlh'
+          message_text: '⏳ Data is loading, please try again in a few seconds.' + FOOTER
         }
       }],
       { cache_time: 2, is_personal: true }
@@ -869,7 +869,7 @@ bot.on('inline_query', async (ctx) => {
             title: 'No results found',
             description: 'Try searching by slug, symbol, or name',
             input_message_content: {
-              message_text: 'No matching asset found.\n\nDev | maowlh'
+              message_text: 'No matching asset found.' + FOOTER
             }
           }
         ],
@@ -897,7 +897,7 @@ bot.on('inline_query', async (ctx) => {
             title: 'Temporary error',
             description: 'Please try again in a few seconds',
             input_message_content: {
-              message_text: '⚠️ Temporary error. Please try again shortly.\n\nDev | maowlh'
+              message_text: '⚠️ Temporary error. Please try again shortly.' + FOOTER
             }
           }
         ],

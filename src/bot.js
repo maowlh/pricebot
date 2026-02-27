@@ -38,24 +38,27 @@ const buildRateIndex = (snapshot) => {
   return rates;
 };
 
+const USD_GOLD_SLUGS = new Set(['usd_xau', 'xag']);
+
 const formatGoldText = (item) => {
   const changeEmoji = trendEmoji(item.dayChange);
+  const unit = USD_GOLD_SLUGS.has(String(item.slug || '').toLowerCase()) ? '$' : 'Toman';
   const lines = [
     `🥇 | Gold ${String(item.slug || item.name || '').toUpperCase()}`,
     '',
-    `💲| Price: ${formatNumber(item.price)} Toman`,
+    `💲| Price: ${formatNumber(item.price)} ${unit}`,
     '',
-    `➕| Open: ${formatNumber(item.open)} Toman`,
-    `🔺| High: ${formatNumber(item.high)} Toman`,
-    `🔻| Low: ${formatNumber(item.low)} Toman`,
+    `➕| Open: ${formatNumber(item.open)} ${unit}`,
+    `🔺| High: ${formatNumber(item.high)} ${unit}`,
+    `🔻| Low: ${formatNumber(item.low)} ${unit}`,
     '',
     `${changeEmoji} | Today: ${formatNumber(item.dayChange, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`,
   ];
   if (item.real_price !== undefined) {
-    lines.push('', `▫️| Real Price: ${formatNumber(item.real_price)} Toman`);
+    lines.push('', `▫️| Real Price: ${formatNumber(item.real_price)} ${unit}`);
   }
   if (item.bubble !== undefined) {
-    lines.push('', `🫧| Bubble: ${formatNumber(item.bubble)} Toman`);
+    lines.push('', `🫧| Bubble: ${formatNumber(item.bubble)} ${unit}`);
     lines.push(`📍| Bubble Per: ${formatNumber(item.bubble_per, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`);
   }
   lines.push('', 'Dev | maowlh');

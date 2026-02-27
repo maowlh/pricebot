@@ -12,6 +12,7 @@ const {
   emojiForCrypto
 } = require('./utils/formatters');
 const {
+  saveUserToCF,
   addAlert,
   getActiveAlerts,
   triggerAlert,
@@ -302,6 +303,9 @@ const getItemPrice = (item, category) => {
 
 // --- /start ---
 bot.command('start', (ctx) => {
+  // Save user to Cloudflare D1
+  saveUserToCF(ctx.from).catch(() => {});
+
   ctx.reply(
     '👋 Welcome to PoolPricer Bot!\n\n' +
     '📌 Commands:\n' +

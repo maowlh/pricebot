@@ -540,18 +540,24 @@ bot.command('delalert', (ctx) => {
   }
 });
 
-// --- /addportfolio [slug] [amount] ---
+// --- /addportfolio [slug] [amount] or [amount] [slug] ---
 bot.command('addportfolio', (ctx) => {
   const parts = ctx.message.text.split(/\s+/).slice(1);
-  if (parts.length < 2) return ctx.reply('❌ فرمت: /addportfolio btc 0.5');
+  if (parts.length < 2) return ctx.reply('❌ فرمت: /addportfolio btc 0.5\nیا: /addportfolio 0.5 btc');
 
-  const slug = parts[0].toLowerCase();
-  const amount = Number(parts[1]);
-  if (!amount || isNaN(amount)) return ctx.reply('❌ مقدار نامعتبر');
+  let slug, amount;
+  if (isNaN(parts[0])) {
+    slug = parts[0].toLowerCase();
+    amount = Number(parts[1]);
+  } else {
+    amount = Number(parts[0]);
+    slug = parts[1].toLowerCase();
+  }
+  if (!amount || isNaN(amount) || amount <= 0) return ctx.reply('❌ مقدار نامعتبر');
 
   const snapshot = getSnapshot();
   const found = findItem(slug, snapshot);
-  if (!found) return ctx.reply(`❌ ارزی با slug "${slug}" پیدا نشد`);
+  if (!found) return ctx.reply(`❌ ارزی با slug "${slug}" پیدا نشد\n\nلیست سمبل‌ها: /symbols`);
 
   setPortfolioItem(ctx.from.id, slug, found.category, amount);
   ctx.reply(`✅ ${amount} ${slug.toUpperCase()} به سبد اضافه شد`);
@@ -597,38 +603,7 @@ bot.command('portfolio', (ctx) => {
 // --- /summary ---
 bot.command('summary', (ctx) => {
   const snapshot = getSnapshot();
-  const lines = [];
-
-  // Gold highlights
-  const goldItems = Object.values(snapshot.gold || {});
-  if (goldItems.length) {
-    const main = goldItems.find((i) => i.slug === 'sekkeh') || goldItems[0];
-    lines.push(`🥇 سکه: ${formatNumber(main.price)} T`);
-  }
-
-  // Currency highlights
-  const usd = Object.values(snapshot.currencies || {}).find((i) => i.slug === 'usd');
-  const eur = Object.values(snapshot.currencies || {}).find((i) => i.slug === 'eur');
-  if (usd) lines.push(`🇺🇸 دلار: ${formatNumber(usd.sell)} T`);
-  if (eur) lines.push(`🇪🇺 یورو: ${formatNumber(eur.sell)} T`);
-
-  // Crypto highlights
-  const cryptoItems = Object.values(snapshot.crypto || {});
-  const btc = cryptoItems.find((i) => i.slug?.toLowerCase() === 'btc');
-  const eth = cryptoItems.find((i) => i.slug?.toLowerCase() === 'eth');
-  if (btc) lines.push(`₿ بیتکوین: ${formatNumber(btc.toman)} T`);
-  if (eth) lines.push(`⟠ اتریوم: ${formatNumber(eth.toman)} T`);
-
-  // Top gainer/loser
-  if (cryptoItems.length) {
-    const sorted = [...cryptoItems].sort((a, b) => Number(b.change_24h || 0) - Number(a.change_24h || 0));
-    const best = sorted[0];
-    const worst = sorted[sorted.length - 1];
-    lines.push('', `🏆 بهترین: ${best.slug} 🟢 +${best.change_24h}%`);
-    lines.push(`📉 بدترین: ${worst.slug} 🔴 ${worst.change_24h}%`);
-  }
-
-  ctx.reply('📊 خلاصه بازار\n\n' + lines.join('\n') + lastUpdatedText(snapshot) + '\n\nDev | maowlh');
+  ctx.reply(buildSummaryText(snapshot), { parse_mode: 'Markdown' });
 });
 
 // ==================== CHANNEL AUTO-POST ====================
@@ -643,31 +618,26 @@ const buildSummaryText = (snapshot) => {
     lines.push('🥇 طلا و سکه:');
     for (const item of goldItems) {
       const unit = USD_GOLD_SLUGS.has(String(item.slug || '').toLowerCase()) ? '$' : 'T';
-      lines.push(`  ${item.name}: ${formatNumber(item.price)} ${unit}`);
+      lines.push(`  ${item.name}: \`${formatNumber(item.price)}\` ${unit}`);
     }
     lines.push('');
   }
 
-  const usd = Object.values(snapshot.currencies || {}).find((i) => i.slug === 'usd');
-  const eur = Object.values(snapshot.currencies || {}).find((i) => i.slug === 'eur');
-  const gbp = Object.values(snapshot.currencies || {}).find((i) => i.slug === 'gbp');
-  if (usd || eur || gbp) {
-    lines.push('💱 ارزهای اصلی:');
-    if (usd) lines.push(`  🇺🇸 دلار: ${formatNumber(usd.sell)} T`);
-    if (eur) lines.push(`  🇪🇺 یورو: ${formatNumber(eur.sell)} T`);
-    if (gbp) lines.push(`  🇬🇧 پوند: ${formatNumber(gbp.sell)} T`);
+  const curItems = Object.values(snapshot.currencies || {});
+  if (curItems.length) {
+    lines.push('💱 ارزها:');
+    for (const item of curItems) {
+      lines.push(`  ${flagForCurrency(item.slug)} ${item.name}: \`${formatNumber(item.sell)}\` T`);
+    }
     lines.push('');
   }
 
   const cryptoItems = Object.values(snapshot.crypto || {});
-  const btc = cryptoItems.find((i) => i.slug?.toLowerCase() === 'btc');
-  const eth = cryptoItems.find((i) => i.slug?.toLowerCase() === 'eth');
-  const usdt = cryptoItems.find((i) => i.slug?.toLowerCase() === 'usdt');
-  if (btc || eth || usdt) {
+  if (cryptoItems.length) {
     lines.push('🪙 رمزارزها:');
-    if (btc) lines.push(`  ₿ BTC: ${formatNumber(btc.toman)} T`);
-    if (eth) lines.push(`  ⟠ ETH: ${formatNumber(eth.toman)} T`);
-    if (usdt) lines.push(`  💲 USDT: ${formatNumber(usdt.toman)} T`);
+    for (const item of cryptoItems) {
+      lines.push(`  ${emojiForCrypto(item.slug)} ${item.slug}: \`${formatNumber(item.toman)}\` T`);
+    }
     lines.push('');
   }
 
@@ -830,7 +800,7 @@ setInterval(() => {
     // Channel auto-post (hourly)
     if (CHANNEL_ID && now - lastChannelPostAt >= CHANNEL_INTERVAL_MS) {
       lastChannelPostAt = now;
-      bot.telegram.sendMessage(CHANNEL_ID, buildSummaryText(snapshot))
+      bot.telegram.sendMessage(CHANNEL_ID, buildSummaryText(snapshot), { parse_mode: 'Markdown' })
         .then(() => console.log('[channel] summary posted'))
         .catch((e) => console.error('[channel] post failed:', e.message));
     }
@@ -842,7 +812,7 @@ setInterval(() => {
       const intervalMs = group.summary_interval_min * 60 * 1000;
       if (now - lastAt >= intervalMs) {
         updateGroupLastSummary(group.chat_id);
-        bot.telegram.sendMessage(group.chat_id, buildSummaryText(snapshot))
+        bot.telegram.sendMessage(group.chat_id, buildSummaryText(snapshot), { parse_mode: 'Markdown' })
           .then(() => console.log(`[group] summary posted to ${group.chat_id}`))
           .catch((e) => console.error(`[group] post failed for ${group.chat_id}:`, e.message));
       }

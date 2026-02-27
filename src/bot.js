@@ -40,6 +40,36 @@ const bot = new Telegraf(BOT_TOKEN);
 
 const FOOTER = '\n\nJoin our channel | t.me/PoolPricer';
 
+// --- Jalali date helper ---
+const toJalali = (date) => {
+  const gDays = [31,28,31,30,31,30,31,31,30,31,30,31];
+  const jDays = [31,31,31,31,31,31,30,30,30,30,30,29];
+  let gy = date.getFullYear(), gm = date.getMonth() + 1, gd = date.getDate();
+  let gDayNo = 0, jDayNo, jNp, jY, jM, jD, i;
+  gy -= 1600; gm -= 1; gd -= 1;
+  let gDn = 365*gy + Math.floor((gy+3)/4) - Math.floor((gy+99)/100) + Math.floor((gy+399)/400);
+  for (i=0;i<gm;i++) gDn += gDays[i];
+  if (gm>1 && ((gy%4===0 && gy%100!==0) || gy%400===0)) gDn++;
+  gDn += gd;
+  jDayNo = gDn - 79;
+  jNp = Math.floor(jDayNo/12053);
+  jDayNo %= 12053;
+  jY = 979 + 33*jNp + 4*Math.floor(jDayNo/1461);
+  jDayNo %= 1461;
+  if (jDayNo >= 366) { jY += Math.floor((jDayNo-1)/365); jDayNo = (jDayNo-1)%365; }
+  for (i=0;i<11 && jDayNo>=jDays[i];i++) jDayNo -= jDays[i];
+  jM = i + 1; jD = jDayNo + 1;
+  return `${jY}/${String(jM).padStart(2,'0')}/${String(jD).padStart(2,'0')}`;
+};
+
+const getJalaliDateTime = () => {
+  const now = new Date(Date.now() + 3.5 * 60 * 60 * 1000); // UTC+3:30 Tehran
+  const jalaliDate = toJalali(now);
+  const hh = String(now.getUTCHours()).padStart(2, '0');
+  const mm = String(now.getUTCMinutes()).padStart(2, '0');
+  return `${jalaliDate} - ${hh}:${mm}`;
+};
+
 const calculatorRegex = /^([\d.]+)\s*([a-zA-Z0-9-]+)\s*to\s*([a-zA-Z0-9-]+)$/i;
 
 const buildRateIndex = (snapshot) => {
@@ -637,13 +667,21 @@ const buildTopText = (snapshot) => {
 };
 
 // Send full summary as separate messages
-const sendFullSummary = async (chatId, snapshot) => {
+const sendFullSummary = async (chatId, snapshot, showDateHeader = false) => {
   const messages = [
     buildGoldText(snapshot),
     buildCurrencyText(snapshot),
     buildCryptoText(snapshot),
     buildTopText(snapshot)
   ].filter(Boolean);
+
+  if (showDateHeader) {
+    try {
+      await bot.telegram.sendMessage(chatId, `📅 ${getJalaliDateTime()} 👇`);
+    } catch (e) {
+      console.error(`[summary] date header failed to ${chatId}:`, e.message);
+    }
+  }
 
   for (const msg of messages) {
     try {
@@ -793,36 +831,48 @@ setInterval(() => {
   }
 }, 60 * 1000);
 
-// ==================== AUTO-POST: Channel + Groups ====================
-let lastChannelPostAt = 0;
+// ==================== AUTO-POST: Channel (exactly every 15 min) ====================
 
+// First post after 15 min from startup, then every 15 min
+setTimeout(() => {
+  // Post immediately after first 15 min wait
+  const postToChannel = () => {
+    try {
+      const snapshot = getSnapshot();
+      if (CHANNEL_ID) {
+        sendFullSummary(CHANNEL_ID, snapshot, true)
+          .then(() => console.log('[channel] summary posted'))
+          .catch((e) => console.error('[channel] post failed:', e.message));
+      }
+    } catch (e) {
+      console.error('[channel] error:', e.message);
+    }
+  };
+
+  postToChannel();
+  setInterval(postToChannel, CHANNEL_INTERVAL_MS);
+}, CHANNEL_INTERVAL_MS);
+
+console.log(`[channel] auto-post scheduled every ${CHANNEL_INTERVAL_MS / 60000} min (first post in ${CHANNEL_INTERVAL_MS / 60000} min)`);
+
+// ==================== AUTO-POST: Groups (check every 60s) ====================
 setInterval(() => {
   try {
     const snapshot = getSnapshot();
     const now = Date.now();
-
-    // Channel auto-post (every 15 min — separate messages)
-    if (CHANNEL_ID && now - lastChannelPostAt >= CHANNEL_INTERVAL_MS) {
-      lastChannelPostAt = now;
-      sendFullSummary(CHANNEL_ID, snapshot)
-        .then(() => console.log('[channel] summary posted'))
-        .catch((e) => console.error('[channel] post failed:', e.message));
-    }
-
-    // Group auto-summaries
     const groups = getActiveGroupSummaries();
     for (const group of groups) {
       const lastAt = group.last_summary_at ? new Date(group.last_summary_at).getTime() : 0;
       const intervalMs = group.summary_interval_min * 60 * 1000;
       if (now - lastAt >= intervalMs) {
         updateGroupLastSummary(group.chat_id);
-        sendFullSummary(group.chat_id, snapshot)
+        sendFullSummary(group.chat_id, snapshot, true)
           .then(() => console.log(`[group] summary posted to ${group.chat_id}`))
           .catch((e) => console.error(`[group] post failed for ${group.chat_id}:`, e.message));
       }
     }
   } catch (e) {
-    console.error('[auto-post] error:', e.message);
+    console.error('[group-post] error:', e.message);
   }
 }, 60 * 1000);
 
